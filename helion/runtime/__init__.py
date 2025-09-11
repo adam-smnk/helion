@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 def _alloc_fn(size: int, alignment: int, stream: int | None) -> torch.Tensor:
-    return torch.empty(size, device="cuda", dtype=torch.int8)
+    return torch.empty(size, device="xpu", dtype=torch.int8)
 
 
 @functools.cache
@@ -48,8 +48,8 @@ def get_num_sm(device: torch.device) -> int:
     Returns:
         Grid size to use for a persistent kernel on the device.
     """
-    assert device.type == "cuda", "TODO: implement for other devices"
-    return torch.cuda.get_device_properties(device.index).multi_processor_count
+    assert device.type == "xpu", "TODO: implement for other devices"
+    return torch.xpu.get_device_properties(device.index).gpu_subslice_count
 
 
 def default_launcher(
