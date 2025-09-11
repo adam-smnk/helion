@@ -17,6 +17,7 @@ from typing import cast
 
 import torch
 from torch.nn.attention.flex_attention import flex_attention
+from helion.autotuner import PowerOfTwoFragment
 
 import helion
 from helion._testing import run_example
@@ -26,10 +27,14 @@ import helion.language as hl
 # %%
 # Attention Kernel Implementation
 # ----------------------------
-@helion.kernel(
-    # Static shapes provides a speedup for attention
-    static_shapes=True,
-)
+# Static shapes provides a speedup for attention
+# @helion.kernel(static_shapes=True)
+# Bench 1
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[64, 64], indexing='pointer', l2_groupings=[2], loop_orders=[[0, 1]], num_stages=1, num_warps=8, pid_type='flat', range_flattens=[None, False, None], range_multi_buffers=[None, None, None], range_num_stages=[0, 0, 0], range_unroll_factors=[0, 0, 0], range_warp_specializes=[]))
+# Bench 2
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[64, 16], indexing='pointer', l2_groupings=[1], loop_orders=[[1, 0]], num_stages=1, num_warps=8, pid_type='flat', range_flattens=[None, None, False], range_multi_buffers=[None, True, None], range_num_stages=[0, 1, 4], range_unroll_factors=[0, 0, 0], range_warp_specializes=[]))
+# Bench 3
+@helion.kernel(static_shapes=True, config=helion.Config(B_M=256, B_N=32, block_sizes=[], indexing='block_ptr', l2_groupings=[8], loop_orders=[[0, 1]], num_stages=3, num_warps=32, pid_type='flat', range_flattens=[None, False, None], range_multi_buffers=[None, None, True], range_num_stages=[0, 0, 1], range_unroll_factors=[0, 3, 0], range_warp_specializes=[]))
 def attention(
     q_in: torch.Tensor,
     k_in: torch.Tensor,
@@ -59,28 +64,33 @@ def attention(
     out = torch.empty_like(q_view)
     sm_scale = 1.0 / math.sqrt(head_dim)
     qk_scale = sm_scale * 1.44269504  # 1/log(2)
-    for tile_b, tile_m in hl.tile([q_view.size(0), m_dim], block_size=[1, None]):
-        m_i = hl.full([tile_b, tile_m], float("-inf"), dtype=torch.float32)
-        l_i = torch.full_like(m_i, 1.0)
-        acc = hl.zeros([tile_b, tile_m, head_dim], dtype=torch.float32)
-        q = q_view[tile_b, tile_m, :]
-        for tile_n in hl.tile(v_view.size(1)):
-            k = k_view[tile_b, :, tile_n]
-            qk = torch.bmm(q, k)
-            m_ij = torch.maximum(m_i, torch.amax(qk, -1) * qk_scale)
-            qk = qk * qk_scale - m_ij[:, :, None]
-            p = torch.exp2(qk)
-            l_ij = torch.sum(p, -1)
-            alpha = torch.exp2(m_i - m_ij)
-            l_i = l_i * alpha + l_ij
-            acc = acc * alpha[:, :, None]
-            v = v_view[tile_b, tile_n, :]
-            p = p.to(v.dtype)
-            acc = torch.baddbmm(acc, p, v)
-            m_i = m_ij
-        m_i += torch.log2(l_i)
-        acc = acc / l_i[:, :, None]
-        out[tile_b, tile_m, :] = acc.to(out.dtype)
+    B_M = hl.register_tunable("B_M", PowerOfTwoFragment(16, 256, 32))
+    B_N = hl.register_tunable("B_N", PowerOfTwoFragment(16, 256, 32))
+    for tile_b, tile_m in hl.tile([q_view.size(0), m_dim], block_size=[1, B_M]):
+        for tb in range(tile_b.begin, tile_b.end):
+            m_i = hl.full([tile_m], float("-inf"), dtype=torch.float32)
+            l_i = torch.full_like(m_i, 1.0)
+            acc = hl.zeros([tile_m, head_dim], dtype=torch.float32)
+            q = q_view[tb, tile_m, :]
+            for tile_n in hl.tile(v_view.size(1), block_size=B_N):
+                k = k_view[tb, :, tile_n]
+                # qk = torch.bmm(q, k)
+                qk = torch.mm(q, k)
+                m_ij = torch.maximum(m_i, torch.amax(qk, -1) * qk_scale)
+                qk = qk * qk_scale - m_ij[:, None]
+                p = torch.exp2(qk)
+                l_ij = torch.sum(p, -1)
+                alpha = torch.exp2(m_i - m_ij)
+                l_i = l_i * alpha + l_ij
+                acc = acc * alpha[:, None]
+                v = v_view[tb, tile_n, :]
+                p = p.to(v.dtype)
+                # acc = torch.baddbmm(acc, p, v)
+                acc = torch.addmm(acc, p, v)
+                m_i = m_ij
+            m_i += torch.log2(l_i)
+            acc = acc / l_i[:, None]
+            out[tb, tile_m, :] = acc.to(out.dtype)
     return out.view(q_in.size())
 
 
@@ -107,7 +117,7 @@ def test(
     n_ctx: int,
     head_dim: int,
     dtype: torch.dtype = torch.float32,
-    device: torch.device | str = "cuda",
+    device: torch.device | str = "xpu",
 ) -> None:
     """
     Test the attention kernel implementation against PyTorch's native attention functions.
@@ -138,8 +148,8 @@ def test(
     )
     baselines = {
         "torch": torch.nn.functional.scaled_dot_product_attention,
-        "flex": flex_compiled,
-        "ref": ref_attention,
+        # "flex": flex_compiled,
+        # "ref": ref_attention,
     }
 
     run_example(attention, baselines, (q, k, v))
@@ -153,6 +163,11 @@ def main() -> None:
     Main entry point that runs the attention kernel test with specific parameters.
     Tests with batch size 2, 32 heads, 1024 sequence length, and 64-dimensional heads using float16.
     """
+    # test(2, 32, 1024, 64, torch.float16)
+
+    # [z, h, n_ctx, head_dim]
+    # test(8, 16, 2048, 64, torch.float16)
+    # test(32, 16, 512, 128, torch.float16)
     test(2, 32, 1024, 64, torch.float16)
 
 

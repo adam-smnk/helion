@@ -20,7 +20,9 @@ import helion.language as hl
 # %%
 # Addition Kernel
 # --------------
-@helion.kernel()
+# @helion.kernel()
+# Tuner's best config:
+@helion.kernel(config=helion.Config(block_sizes=[16, 128], flatten_loops=[True], indexing='block_ptr', l2_groupings=[2], loop_orders=[[0, 1]], num_stages=2, num_warps=16, pid_type='flat', range_flattens=[None], range_multi_buffers=[None], range_num_stages=[0], range_unroll_factors=[0], range_warp_specializes=[]))
 def add(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     """
     Add two tensors element-wise with broadcasting support.
@@ -57,8 +59,8 @@ def check(m: int, n: int) -> None:
         m: First dimension of the test tensors
         n: Second dimension of the test tensors
     """
-    x = torch.randn([m, n], device="cuda", dtype=torch.float16)
-    y = torch.randn([m, n], device="cuda", dtype=torch.float16)
+    x = torch.randn([m, n], device="xpu", dtype=torch.float16)
+    y = torch.randn([m, n], device="xpu", dtype=torch.float16)
     run_example(add, torch.add, (x, y))
 
 

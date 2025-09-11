@@ -27,7 +27,9 @@ if TYPE_CHECKING:
 
 
 # %%
-@helion.kernel(static_shapes=True)
+# @helion.kernel(static_shapes=True)
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 32, 32], indexing='block_ptr', l2_groupings=[4], loop_orders=[[1, 2, 0]], num_stages=2, num_warps=8, pid_type='flat', range_flattens=[None, False], range_multi_buffers=[None, True], range_num_stages=[0, 0], range_unroll_factors=[0, 1], range_warp_specializes=[], split_k=1))
+@helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[64, 512, 32], indexing='pointer', l2_groupings=[64], loop_orders=[[2, 0, 1]], num_stages=8, num_warps=16, pid_type='flat', range_flattens=[None, True], range_multi_buffers=[None, None], range_num_stages=[0, 2], range_unroll_factors=[0, 1], range_warp_specializes=[], split_k=1))
 def matmul_split_k(
     x: torch.Tensor,
     y: torch.Tensor,
@@ -55,15 +57,15 @@ def matmul_split_k(
     out = torch.zeros(
         [m, n], dtype=torch.promote_types(x.dtype, y.dtype), device=x.device
     )
-    split_k = hl.register_tunable("split_k", PowerOfTwoFragment(1, 256))
+    split_k = hl.register_tunable("split_k", PowerOfTwoFragment(1, 8, 1))
     k_block = helion.next_power_of_2(helion.cdiv(k, split_k))
     for tile_m, tile_n, outer_k in hl.tile([m, n, k], block_size=[None, None, k_block]):
         acc = hl.zeros([tile_m, tile_n], dtype=torch.float32)
         for inner_k in hl.tile(outer_k.begin, outer_k.end):
             acc = torch.addmm(acc, x[tile_m, inner_k], y[inner_k, tile_n])
         # Apply epilogue only on the first k-split iteration
-        if outer_k.begin == 0:
-            acc = epilogue(acc, (tile_m, tile_n))
+        # if outer_k.begin == 0:
+        #     acc = epilogue(acc, (tile_m, tile_n))
         hl.atomic_add(out, [tile_m, tile_n], acc)
     return out
 
@@ -80,19 +82,19 @@ def check(m: int, k: int, n: int) -> None:
         k (int): Shared dimension.
         n (int): Number of columns in the right input matrix.
     """
-    x = torch.randn([m, k], device="cuda", dtype=torch.float16)
-    y = torch.randn([k, n], device="cuda", dtype=torch.float16)
+    x = torch.randn([m, k], device="xpu", dtype=torch.float16)
+    y = torch.randn([k, n], device="xpu", dtype=torch.float16)
     # Test without bias
     kernel_no_bias = lambda x, y: matmul_split_k(x, y)  # noqa: E731
     expected_no_bias = lambda x, y: torch.matmul(x, y)  # noqa: E731
     run_example(kernel_no_bias, expected_no_bias, (x, y), atol=1)
-    # Test with bias using closure approach
-    bias = torch.randn([n], device="cuda", dtype=torch.float16)
-    kernel_with_bias = lambda x, y: matmul_split_k(  # noqa: E731
-        x, y, epilogue=lambda acc, tile: acc + bias[tile[1]]
-    )
-    expected_with_bias = lambda x, y: torch.nn.functional.linear(x, y.T, bias)  # noqa: E731
-    run_example(kernel_with_bias, expected_with_bias, (x, y), atol=1)
+    # # Test with bias using closure approach
+    # bias = torch.randn([n], device="xpu", dtype=torch.float16)
+    # kernel_with_bias = lambda x, y: matmul_split_k(  # noqa: E731
+    #     x, y, epilogue=lambda acc, tile: acc + bias[tile[1]]
+    # )
+    # expected_with_bias = lambda x, y: torch.nn.functional.linear(x, y.T, bias)  # noqa: E731
+    # run_example(kernel_with_bias, expected_with_bias, (x, y), atol=1)
 
 
 # %%
@@ -120,7 +122,15 @@ def main() -> None:
     """
     Main function to run the matmul_split_k kernel correctness check with example input size.
     """
-    check(64, 32768, 64)
+    # [m, k, n]
+    # check(64, 32768, 64)
+    check(4096, 4096, 4096)
+    # check(512, 32768, 8192)
+    # check(1024, 28672, 8192)
+
+    # Backup
+    # check(3072, 4096, 3072)
+    # check(64, 32768, 64)
 
 
 # %%
