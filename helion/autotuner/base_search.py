@@ -233,6 +233,8 @@ class BaseSearch(BaseAutotuner):
             if res < self.best_perf_so_far:
                 self.best_perf_so_far = res
             return res
+        except KeyboardInterrupt:
+            raise exc.TritonError("Keyboard intr")
         except Exception as e:
             action = classify_triton_exception(e)
             if action == "raise":
