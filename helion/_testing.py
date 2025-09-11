@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from .runtime.kernel import Kernel
 
 
-DEVICE = torch.device("cuda")
+DEVICE = torch.device("xpu")
 EXAMPLES_DIR: Path = Path(__file__).parent.parent / "examples"
 
 
@@ -361,7 +361,7 @@ def run_example(
     torch.set_float32_matmul_precision("high")
 
     # Normalize to dict format
-    kernels = kernel_fn if isinstance(kernel_fn, dict) else {kernel_name: kernel_fn}
+    kernels =  kernel_fn if isinstance(kernel_fn, dict) else {kernel_name: kernel_fn}
     baselines = (
         baseline_fn if isinstance(baseline_fn, dict) else {baseline_name: baseline_fn}
     )
@@ -380,9 +380,38 @@ def run_example(
                 atol=atol,
             )
 
+    warmup_time = 25 * 2
+    rep_time = 100
+
+    ### Benchmark timing adjustments
+    # Taken from Intel XPU 'do_bench_elapsed_time' for more comparable results
+    #
+    # We maintain a buffer of 256 MB that we clear
+    # before each kernel call to make sure that the L2
+    # doesn't contain any input data before the run
+    cache_size = 256 * 1024 * 1024
+    cache = torch.empty(int(cache_size // 4), dtype=torch.int, device="xpu")
+    # Estimate the runtime of the function
+    start_event = torch.xpu.Event(enable_timing=True)
+    end_event = torch.xpu.Event(enable_timing=True)
+    start_event.record()
+    for _ in range(5):
+        cache.zero_()
+        first_baseline_func(*args)
+    end_event.record()
+    torch.xpu.synchronize()
+    estimate_ms = start_event.elapsed_time(end_event) / 5
+    # The cache is also maintained in `do_bench` function,
+    # there is no need to duplicate the amount of memory used.
+    del cache
+
+    # compute warmup and repeat times
+    warmup_time = 25 * estimate_ms
+    rep_time = 100 * estimate_ms
+
     # Benchmark all functions
     all_times = {
-        name: do_bench(lambda fn=fn: fn(*args))
+        name: do_bench(lambda fn=fn: fn(*args), warmup=warmup_time, rep=rep_time)
         for name, fn in {**kernels, **baselines}.items()
     }
 
