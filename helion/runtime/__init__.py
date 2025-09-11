@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 def _alloc_fn(size: int, alignment: int, stream: int | None) -> torch.Tensor:
-    return torch.empty(size, device="cuda", dtype=torch.int8)
+    return torch.empty(size, device="xpu", dtype=torch.int8)
 
 
 def set_triton_allocator() -> None:
