@@ -24,10 +24,19 @@ if TYPE_CHECKING:
 
 
 # %%
-@helion.kernel(
-    # static_shapes=True gives a performance boost for matmuls
-    static_shapes=True,
-)
+# @helion.kernel(
+#     # static_shapes=True gives a performance boost for matmuls
+#     static_shapes=True,
+# )
+# 512 8192 8192
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[128, 128, 32], indexing='pointer', l2_groupings=[4], loop_orders=[[1, 0]], num_stages=3, num_warps=16, pid_type='flat', range_flattens=[None, False], range_multi_buffers=[None, False], range_num_stages=[0, 0], range_unroll_factors=[0, 0], range_warp_specializes=[]))
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[32, 128, 64], indexing='pointer', l2_groupings=[32], loop_orders=[[0, 1]], num_stages=2, num_warps=4, pid_type='flat', range_flattens=[None, True], range_multi_buffers=[None, False], range_num_stages=[0, 0], range_unroll_factors=[0, 1], range_warp_specializes=[]))
+# Bench 1K
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[64, 128, 16], indexing='pointer', l2_groupings=[32], loop_orders=[[1, 0]], num_stages=2, num_warps=8, pid_type='flat', range_flattens=[None, None], range_multi_buffers=[None, None], range_num_stages=[0, 2], range_unroll_factors=[0, 1], range_warp_specializes=[]))
+# Bench 4K
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[64, 512, 32], indexing='pointer', l2_groupings=[32], loop_orders=[[0, 1]], num_stages=3, num_warps=16, pid_type='flat', range_flattens=[None, None], range_multi_buffers=[None, None], range_num_stages=[0, 2], range_unroll_factors=[0, 1], range_warp_specializes=[]))
+# Bench 8K
+@helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 256, 32], indexing='pointer', l2_groupings=[8], loop_orders=[[1, 0]], num_stages=2, num_warps=32, pid_type='persistent_blocked', range_flattens=[None, False], range_multi_buffers=[False, True], range_num_stages=[2, 1], range_unroll_factors=[1, 0]))
 def matmul(
     x: Tensor,
     y: Tensor,
@@ -268,9 +277,9 @@ def autotune(m: int, k: int, n: int) -> None:
         k (int): Number of columns in matrix x and rows in matrix y.
         n (int): Number of columns in matrix y.
     """
-    x = torch.randn([m, k], device="cuda", dtype=torch.float16)
-    y = torch.randn([k, n], device="cuda", dtype=torch.float16)
-    bias = torch.randn([n], device="cuda", dtype=torch.float16)
+    x = torch.randn([m, k], device="xpu", dtype=torch.float16)
+    y = torch.randn([k, n], device="xpu", dtype=torch.float16)
+    bias = torch.randn([n], device="xpu", dtype=torch.float16)
     args = (x, y, lambda acc, tile: torch.relu(acc + bias[tile[1]]))
     best_config = matmul.autotune(args, force=True)
     print(f"Best config: {best_config}")
@@ -290,47 +299,47 @@ def check(m: int, k: int, n: int) -> None:
         k (int): Number of columns in matrix x and rows in matrix y.
         n (int): Number of columns in matrix y.
     """
-    x = torch.randn([m, k], device="cuda", dtype=torch.float16)
-    y = torch.randn([k, n], device="cuda", dtype=torch.float16)
-    bias = torch.randn([n], device="cuda", dtype=torch.float16)
-    bias_scalar = torch.randn([1], device="cuda", dtype=torch.float16)
+    x = torch.randn([m, k], device="xpu", dtype=torch.float16)
+    y = torch.randn([k, n], device="xpu", dtype=torch.float16)
+    bias = torch.randn([n], device="xpu", dtype=torch.float16)
+    bias_scalar = torch.randn([1], device="xpu", dtype=torch.float16)
     # Test without bias
     run_example(matmul, torch.matmul, (x, y))
 
     # Test for addmm with scalar bias
-    def addmm(bias: Tensor, mat1: Tensor, mat2: Tensor) -> Tensor:
-        m, k = mat1.size()
-        k2, n = mat2.size()
-        bias = torch.broadcast_to(bias, [m, n])
-        return matmul(mat1, mat2, lambda acc, tile: acc + bias[tile[0], tile[1]])
+    # def addmm(bias: Tensor, mat1: Tensor, mat2: Tensor) -> Tensor:
+    #     m, k = mat1.size()
+    #     k2, n = mat2.size()
+    #     bias = torch.broadcast_to(bias, [m, n])
+    #     return matmul(mat1, mat2, lambda acc, tile: acc + bias[tile[0], tile[1]])
 
-    run_example(addmm, torch.addmm, (bias_scalar, x, y))
+    # run_example(addmm, torch.addmm, (bias_scalar, x, y))
 
     # Test with bias
-    def helion_linear(x: Tensor, y: Tensor, bias: Tensor) -> Tensor:
-        return matmul(x, y, lambda acc, tile: acc + bias[tile[1]])
+    # def helion_linear(x: Tensor, y: Tensor, bias: Tensor) -> Tensor:
+    #     return matmul(x, y, lambda acc, tile: acc + bias[tile[1]])
 
-    def baseline_linear(x: Tensor, y: Tensor, bias: Tensor) -> Tensor:
-        return torch.nn.functional.linear(x, y.T, bias)
+    # def baseline_linear(x: Tensor, y: Tensor, bias: Tensor) -> Tensor:
+    #     return torch.nn.functional.linear(x, y.T, bias)
 
-    run_example(helion_linear, baseline_linear, (x, y, bias))
+    # run_example(helion_linear, baseline_linear, (x, y, bias))
 
-    # Test more complex epilogue
-    def epilogue(acc: Tensor, tile: tuple[Tensor, ...]) -> Tensor:
-        # The epilogue can use the captured bias tensor that is implicitly lifted to a kernel arg
-        return torch.relu(acc + bias[tile[1]])
+    # # Test more complex epilogue
+    # def epilogue(acc: Tensor, tile: tuple[Tensor, ...]) -> Tensor:
+    #     # The epilogue can use the captured bias tensor that is implicitly lifted to a kernel arg
+    #     return torch.relu(acc + bias[tile[1]])
 
-    def kernel_wrapper(x: Tensor, y: Tensor) -> Tensor:
-        return matmul(x, y, epilogue)
+    # def kernel_wrapper(x: Tensor, y: Tensor) -> Tensor:
+    #     return matmul(x, y, epilogue)
 
-    def baseline_wrapper(x: Tensor, y: Tensor) -> Tensor:
-        return torch.relu(x @ y + bias)
+    # def baseline_wrapper(x: Tensor, y: Tensor) -> Tensor:
+    #     return torch.relu(x @ y + bias)
 
-    run_example(
-        kernel_wrapper,
-        baseline_wrapper,
-        (x, y),
-    )
+    # run_example(
+    #     kernel_wrapper,
+    #     baseline_wrapper,
+    #     (x, y),
+    # )
 
     # Test matmul forward + backward pass
     print("\n\n=== MatMul Forward + Backward Pass Test ===")
@@ -431,8 +440,11 @@ def main() -> None:
     """
     Main function to run autotuning (commented out) and correctness checks.
     """
+    # [m, k, n]
     # autotune(1024, 1024, 1024)
-    check(1024, 1024, 1024)
+    # check(1024, 1024, 1024)
+    # check(4096, 4096, 4096)
+    check(512, 8192, 8192)
 
 
 # %%
