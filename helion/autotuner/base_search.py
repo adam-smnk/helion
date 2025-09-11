@@ -52,6 +52,7 @@ _expected_errors_regexp: re.Pattern[str] = re.compile(
                 "misaligned address",  # CUDA Error
                 "PassManager::run failed",  # Triton Error
                 "illegal memory access",  # CUDA Error
+                "ZE_RESULT_ERROR_INVALID_KERNEL_NAME",  # IGC Error
             ],
         )
     )
@@ -146,8 +147,12 @@ class BaseSearch(BaseAutotuner):
             self.log.debug("Benchmarking failed: OutOfResources")
         except PTXASError:
             self.log.warning(f"PTXASError compiling config: {config}")
+        except KeyboardInterrupt:
+            raise exc.TritonError("Keyboard intr")
         except Exception as e:
-            if not _expected_errors_regexp.search(str(e)):
+            msg = str(e)
+            if ("ZE_RESULT_ERROR_INVALID_KERNEL_NAME" not in msg or "sycl::_V1::exception" not in msg) and \
+                not _expected_errors_regexp.search(msg):
                 raise exc.TritonError(f"{type(e).__qualname__}: {e}", config) from e
             self.log.debug(f"Benchmarking failed: {type(e).__name__}: {e}")
         return inf
