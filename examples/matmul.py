@@ -22,6 +22,8 @@ import helion.language as hl
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+import faulthandler
+faulthandler.enable()
 
 # %%
 # @helion.kernel(
