@@ -36,7 +36,12 @@ if TYPE_CHECKING:
 # Bench 4K
 # @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[64, 512, 32], indexing='pointer', l2_groupings=[32], loop_orders=[[0, 1]], num_stages=3, num_warps=16, pid_type='flat', range_flattens=[None, None], range_multi_buffers=[None, None], range_num_stages=[0, 2], range_unroll_factors=[0, 1], range_warp_specializes=[]))
 # Bench 8K
-@helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 256, 32], indexing='pointer', l2_groupings=[8], loop_orders=[[1, 0]], num_stages=2, num_warps=32, pid_type='persistent_blocked', range_flattens=[None, False], range_multi_buffers=[False, True], range_num_stages=[2, 1], range_unroll_factors=[1, 0]))
+@helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 256, 32], indexing='tensor_descriptor', l2_groupings=[8], loop_orders=[[1, 0]], num_stages=2, num_warps=32, pid_type='persistent_blocked', range_flattens=[None, False], range_multi_buffers=[False, True], range_num_stages=[2, 1], range_unroll_factors=[1, 0]))
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 128, 16], indexing='tensor_descriptor', l2_groupings=[64], loop_orders=[[0, 1]], num_stages=3, num_warps=16, pid_type='flat', range_flattens=[None, False], range_multi_buffers=[None, None], range_num_stages=[0, 0], range_unroll_factors=[0, 1], range_warp_specializes=[]))
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 256, 16], indexing='tensor_descriptor', l2_groupings=[64], loop_orders=[[0, 1]], num_stages=6, num_warps=32, pid_type='flat', range_flattens=[None, False], range_multi_buffers=[None, None], range_num_stages=[0, 2], range_unroll_factors=[0, 0], range_warp_specializes=[]))
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[128, 128, 32], indexing='tensor_descriptor', l2_groupings=[32], loop_orders=[[0, 1]], num_stages=3, num_warps=8, pid_type='flat', range_flattens=[None, False], range_multi_buffers=[None, False], range_num_stages=[0, 3], range_unroll_factors=[0, 0], range_warp_specializes=[]))
+# Invalid numerical results
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 32, 32], indexing='tensor_descriptor', l2_groupings=[2], loop_orders=[[0, 1]], num_stages=3, num_warps=32, pid_type='persistent_interleaved', range_flattens=[True, None], range_multi_buffers=[True, None], range_num_stages=[4, 3], range_unroll_factors=[2, 3]))
 def matmul(
     x: Tensor,
     y: Tensor,
