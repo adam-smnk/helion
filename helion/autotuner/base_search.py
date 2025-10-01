@@ -222,8 +222,8 @@ class BaseSearch(BaseAutotuner):
             res = do_bench(
                 functools.partial(fn, *self.args),
                 return_mode="median",
-                warmup=1,  # we are already warmed up above
-                rep=50,
+                warmup=1*50,  # we are already warmed up above
+                rep=50*3,
             )
             t2 = time.perf_counter()
             assert isinstance(res, float)
@@ -567,7 +567,7 @@ class PopulationBasedSearch(BaseSearch):
         """
         if len(members) < 2:
             return
-        repeat = min(1000, max(3, int(200 / self.best_perf_so_far)))
+        repeat = min(1000, max(10, int(200 / self.best_perf_so_far)))
         iterator = [functools.partial(m.fn, *self.args) for m in members]
         if self.settings.autotune_progress_bar:
             new_timings = interleaved_bench(iterator, repeat=repeat, desc=desc)
