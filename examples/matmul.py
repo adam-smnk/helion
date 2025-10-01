@@ -44,6 +44,39 @@ faulthandler.enable()
 # @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[128, 128, 32], indexing='tensor_descriptor', l2_groupings=[32], loop_orders=[[0, 1]], num_stages=3, num_warps=8, pid_type='flat', range_flattens=[None, False], range_multi_buffers=[None, False], range_num_stages=[0, 3], range_unroll_factors=[0, 0], range_warp_specializes=[]))
 # Invalid numerical results
 # @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 32, 32], indexing='tensor_descriptor', l2_groupings=[2], loop_orders=[[0, 1]], num_stages=3, num_warps=32, pid_type='persistent_interleaved', range_flattens=[True, None], range_multi_buffers=[True, None], range_num_stages=[4, 3], range_unroll_factors=[2, 3]))
+# Manual autotune - based on XPU's 'get_matmul_batched_autotune_configs'
+# @helion.kernel(static_shapes=True, configs=[
+#     helion.Config(block_sizes=[256, 256, 32], indexing='tensor_descriptor', l2_groupings=[4],
+#                   loop_orders=[[0, 1]], num_stages=s, num_warps=32, pid_type='flat',
+#                   range_flattens=[None, False], range_multi_buffers=[None, False], range_num_stages=[1, 2], range_unroll_factors=[0, 1])
+#                   for s in [2, 3]
+#     ] + [
+#     helion.Config(block_sizes=[256, 128, 32], indexing='tensor_descriptor', l2_groupings=[4],
+#                   loop_orders=[[0, 1]], num_stages=s, num_warps=32, pid_type='flat',
+#                   range_flattens=[None, False], range_multi_buffers=[None, False], range_num_stages=[1, 2], range_unroll_factors=[0, 1])
+#                   for s in [2]
+#     ] + [
+#     helion.Config(block_sizes=[128, 1024, 16], indexing='tensor_descriptor', l2_groupings=[4],
+#                   loop_orders=[[0, 1]], num_stages=s, num_warps=32, pid_type='flat',
+#                   range_flattens=[None, False], range_multi_buffers=[None, False], range_num_stages=[1, 2], range_unroll_factors=[0, 1])
+#                   for s in [2, 3]
+#     ] + [
+#     helion.Config(block_sizes=[64, 128, 32], indexing='tensor_descriptor', l2_groupings=[4],
+#                   loop_orders=[[0, 1]], num_stages=s, num_warps=32, pid_type='flat',
+#                   range_flattens=[None, False], range_multi_buffers=[None, False], range_num_stages=[1, 2], range_unroll_factors=[0, 1])
+#                   for s in [2]
+#     ] + [
+#     helion.Config(block_sizes=[8, 512, 64], indexing='tensor_descriptor', l2_groupings=[1],
+#                   loop_orders=[[0, 1]], num_stages=s, num_warps=32, pid_type='flat',
+#                   range_flattens=[None, False], range_multi_buffers=[None, False], range_num_stages=[1, 2], range_unroll_factors=[0, 1])
+#                   for s in [2]
+#     ] + [
+#     helion.Config(block_sizes=[8, 128, 64], indexing='tensor_descriptor', l2_groupings=[1],
+#                   loop_orders=[[0, 1]], num_stages=s, num_warps=4, pid_type='flat',
+#                   range_flattens=[None, False], range_multi_buffers=[None, False], range_num_stages=[1, 2], range_unroll_factors=[0, 1])
+#                   for s in [2]
+#     ]
+# )
 def matmul(
     x: Tensor,
     y: Tensor,
