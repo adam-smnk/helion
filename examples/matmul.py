@@ -82,6 +82,9 @@ faulthandler.enable()
 #                   for s in [2]
 #     ]
 # )
+# LNL config 1024x1024x1024
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[64, 512, 16], indexing='pointer', l2_groupings=[64], loop_orders=[[1, 0]], num_stages=2, num_warps=32, pid_type='flat', range_flattens=[None, False], range_multi_buffers=[None, True], range_num_stages=[0, 4], range_unroll_factors=[0, 0], range_warp_specializes=[]))
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 128, 32], indexing='tensor_descriptor', l2_groupings=[4], loop_orders=[[1, 0]], num_stages=3, num_warps=32, pid_type='persistent_interleaved', range_flattens=[True, False], range_multi_buffers=[False, False], range_num_stages=[3, 0], range_unroll_factors=[2, 0]))
 def matmul(
     x: Tensor,
     y: Tensor,
