@@ -584,6 +584,9 @@ def run_example(
     # compute warmup and repeat times
     warmup_time = 25 * estimate_ms
     rep_time = 100 * estimate_ms
+    # benchmarking adjustment
+    warmup_time = warmup_time * 25
+    rep_time = rep_time * 10
 
     # Benchmark all functions
     all_times = {
