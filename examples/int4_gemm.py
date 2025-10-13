@@ -20,6 +20,7 @@ import torch
 from torch import Tensor
 
 import helion
+from helion._testing import run_example
 import helion.language as hl
 
 # %%
@@ -29,6 +30,9 @@ import helion.language as hl
 
 # %%
 @helion.kernel(static_shapes=False)
+# Bench 1K
+# @helion.kernel(static_shapes=False, config=helion.Config(block_sizes=[8, 128, 256], indexing='tensor_descriptor', l2_groupings=[1], loop_orders=[[1, 0]], num_stages=2, num_warps=32, pid_type='flat', range_flattens=[None, False], range_multi_buffers=[None, False], range_num_stages=[0, 4], range_unroll_factors=[0, 0], range_warp_specializes=[]))
+# @helion.kernel(static_shapes=False, config=helion.Config(block_sizes=[32, 32, 1024], indexing='tensor_descriptor', l2_groupings=[16], loop_orders=[[0, 1]], num_stages=5, num_warps=32, pid_type='flat', range_flattens=[None, False], range_multi_buffers=[None, True], range_num_stages=[0, 1], range_unroll_factors=[0, 1], range_warp_specializes=[]))
 def matmul_bf16_int4(A: Tensor, B: Tensor) -> Tensor:
     """
     BFloat16 x INT4 General Matrix Multiplication (GEMM).
@@ -139,11 +143,11 @@ def check(m: int, k: int, n: int) -> None:
         n (int): Number of columns in the right input matrix.
     """
     # Create test matrices
-    A = torch.randn(m, k, dtype=torch.bfloat16, device="cuda")
+    A = torch.randn(m, k, dtype=torch.bfloat16, device="xpu")
 
     # Create packed int4 matrix B (K//2 x N)
     # Generate random int4 values in range [-8, 7] and pack them
-    B_unpacked = torch.randint(-8, 8, (k, n), dtype=torch.int8, device="cuda")
+    B_unpacked = torch.randint(-8, 8, (k, n), dtype=torch.int8, device="xpu")
 
     # Pack using the same format as tritonbench
     B_reshaped = B_unpacked.reshape(k // 2, 2, n).permute(1, 0, 2)
@@ -161,6 +165,8 @@ def check(m: int, k: int, n: int) -> None:
     # Check accuracy with appropriate tolerance
     torch.testing.assert_close(result, expected, rtol=2e-1, atol=1.0)
     print(f"Test passed for shapes: M={m}, K={k}, N={n}")
+    run_example(matmul_bf16_int4, matmul_bf16_int4, (A, B_packed))
+    run_example(torch.matmul, torch.matmul, (A, B_unpacked_bf16))
 
 
 # %%
@@ -173,8 +179,10 @@ def main() -> None:
     """
     Main function to run tests with different matrix sizes.
     """
-    check(4, 8192, 7168)
-    check(8192, 8192, 8192)
+    # check(256, 512, 256)
+    # check(512, 512, 512)
+    check(1024, 1024, 1024)
+    # check(4096, 4096, 4096)
 
 
 # %%
