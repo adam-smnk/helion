@@ -25,6 +25,10 @@ import helion
 from helion._testing import run_example
 import helion.language as hl
 
+import faulthandler
+faulthandler.enable()
+
+
 # %%
 # Attention Kernel Implementation
 # ----------------------------
@@ -35,7 +39,35 @@ import helion.language as hl
 # Bench 2
 # @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[64, 16], indexing='pointer', l2_groupings=[1], loop_orders=[[1, 0]], num_stages=1, num_warps=8, pid_type='flat', range_flattens=[None, None, False], range_multi_buffers=[None, True, None], range_num_stages=[0, 1, 4], range_unroll_factors=[0, 0, 0], range_warp_specializes=[]))
 # Bench 3
-@helion.kernel(static_shapes=True, config=helion.Config(B_M=256, B_N=32, block_sizes=[], indexing='block_ptr', l2_groupings=[8], loop_orders=[[0, 1]], num_stages=3, num_warps=32, pid_type='flat', range_flattens=[None, False, None], range_multi_buffers=[None, None, True], range_num_stages=[0, 0, 1], range_unroll_factors=[0, 3, 0], range_warp_specializes=[]))
+# @helion.kernel(static_shapes=True, config=helion.Config(B_M=256, B_N=32, block_sizes=[], indexing='block_ptr', l2_groupings=[8], loop_orders=[[0, 1]], num_stages=3, num_warps=32, pid_type='flat', range_flattens=[None, False, None], range_multi_buffers=[None, None, True], range_num_stages=[0, 0, 1], range_unroll_factors=[0, 3, 0], range_warp_specializes=[]))
+# Autotuner - 2x16x512x64
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 32], indexing='tensor_descriptor', l2_groupings=[1], loop_orders=[[0, 1]], num_stages=2, num_warps=32, pid_type='persistent_interleaved', range_flattens=[None, False, None], range_multi_buffers=[None, None, True], range_num_stages=[0, 0, 1], range_unroll_factors=[0, 0, 0]))
+# @helion.kernel(static_shapes=True, config=helion.Config(B_M=256, B_N=32, block_sizes=[], indexing='block_ptr', l2_groupings=[1], loop_orders=[[0, 1]], num_stages=2, num_warps=32, pid_type='persistent_interleaved', range_flattens=[None, False, None], range_multi_buffers=[None, None, True], range_num_stages=[0, 0, 1], range_unroll_factors=[0, 0, 0]))
+# Autotuner - 4x16x4096x128
+# @helion.kernel(static_shapes=True, config=helion.Config(B_M=256, B_N=64, block_sizes=[], indexing='tensor_descriptor', l2_groupings=[64], loop_orders=[[1, 0]], num_stages=3, num_warps=32, pid_type='persistent_interleaved', range_flattens=[True, True, None], range_multi_buffers=[True, None, False], range_num_stages=[2, 3, 4], range_unroll_factors=[1, 0, 1]))
+# @helion.kernel(static_shapes=True, config=helion.Config(B_M=256, B_N=32, block_sizes=[], indexing='block_ptr', l2_groupings=[8], loop_orders=[[0, 1]], num_stages=4, num_warps=32, pid_type='flat', range_flattens=[None, False, None], range_multi_buffers=[None, False, False], range_num_stages=[0, 0, 0], range_unroll_factors=[0, 0, 0], range_warp_specializes=[]))
+# Autotuner - 16x32x1024x64
+# @helion.kernel(static_shapes=True, config=helion.Config(B_M=512, B_N=64, block_sizes=[], indexing='tensor_descriptor', l2_groupings=[32], loop_orders=[[0, 1]], num_stages=4, num_warps=32, pid_type='persistent_interleaved', range_flattens=[None, False, None], range_multi_buffers=[None, False, False], range_num_stages=[4, 3, 0], range_unroll_factors=[1, 3, 1]))
+# @helion.kernel(static_shapes=True, config=helion.Config(B_M=128, B_N=64, block_sizes=[], indexing='block_ptr', l2_groupings=[16], loop_orders=[[0, 1]], num_stages=3, num_warps=16, pid_type='flat', range_flattens=[None, False, None], range_multi_buffers=[None, False, False], range_num_stages=[0, 0, 0], range_unroll_factors=[0, 0, 0], range_warp_specializes=[]))
+# @helion.kernel(static_shapes=True, config=helion.Config(B_M=128, B_N=32, block_sizes=[], indexing='block_ptr', l2_groupings=[16], loop_orders=[[0, 1]], num_stages=1, num_warps=16, pid_type='flat', range_flattens=[None, None, False], range_multi_buffers=[None, None, False], range_num_stages=[0, 0, 4], range_unroll_factors=[0, 1, 0], range_warp_specializes=[]))
+# Autotuner - 4x32x256x128
+# @helion.kernel(config=helion.Config(B_M=128, B_N=32, block_sizes=[], indexing='block_ptr', l2_groupings=[8], loop_orders=[[0, 1]], num_stages=3, num_warps=16, pid_type='persistent_interleaved', range_flattens=[None, False, None], range_multi_buffers=[None, False, False], range_num_stages=[0, 0, 0], range_unroll_factors=[0, 0, 0], range_warp_specializes=[]), static_shapes=True)
+# @helion.kernel(config=helion.Config(B_M=128, B_N=32, block_sizes=[], indexing='block_ptr', l2_groupings=[1], loop_orders=[[1, 0]], num_stages=1, num_warps=16, pid_type='flat', range_flattens=[None, False, None], range_multi_buffers=[None, True, False], range_num_stages=[0, 2, 4], range_unroll_factors=[0, 1, 1], range_warp_specializes=[]), static_shapes=True)
+@helion.kernel(static_shapes=True, config=helion.Config(B_M=64, B_N=32, block_sizes=[], indexing='block_ptr', l2_groupings=[32], loop_orders=[[0, 1]], num_stages=1, num_warps=8, pid_type='flat', range_flattens=[None, False, False], range_multi_buffers=[None, None, True], range_num_stages=[0, 0, 0], range_unroll_factors=[0, 1, 0], range_warp_specializes=[]))
+# Manual autotune - based on XPU's 'flash_attention_benchmark.py' configs
+# @helion.kernel(static_shapes=True, configs=[
+#     helion.Config(B_M=BM, B_N=BN, indexing='block_ptr', l2_groupings=[l2],
+#                   loop_orders=[[0, 1]], num_stages=s, num_warps=w, pid_type='flat',
+#                   range_flattens=[None, False, None], range_multi_buffers=[None, False, False], range_num_stages=[0, 0, 0],
+#                   range_unroll_factors=[0, 0, 0], range_warp_specializes=[])
+#                   for BM in [128, 256] \
+#                   for BN in [32, 64] \
+#                   for s in [2, 3, 4] \
+#                   for w in [16, 32] \
+#                   for l2 in [8, 16] \
+#     ]
+# )
+# @helion.kernel(config=helion.Config(B_M=128, B_N=32, block_sizes=[], indexing='block_ptr', l2_groupings=[8], loop_orders=[[0, 1]], num_stages=3, num_warps=16, pid_type='persistent_interleaved', range_flattens=[None, False, None], range_multi_buffers=[None, False, False], range_num_stages=[0, 0, 0], range_unroll_factors=[0, 0, 0], range_warp_specializes=[]), static_shapes=True)
 def attention(
     q_in: torch.Tensor,
     k_in: torch.Tensor,
@@ -65,8 +97,8 @@ def attention(
     out = torch.empty_like(q_view)
     sm_scale = 1.0 / math.sqrt(head_dim)
     qk_scale = sm_scale * 1.44269504  # 1/log(2)
-    B_M = hl.register_tunable("B_M", PowerOfTwoFragment(16, 256, 32))
-    B_N = hl.register_tunable("B_N", PowerOfTwoFragment(16, 256, 32))
+    B_M = hl.register_tunable("B_M", PowerOfTwoFragment(16, 512, 32))
+    B_N = hl.register_tunable("B_N", PowerOfTwoFragment(16, 512, 32))
     for tile_b, tile_m in hl.tile([q_view.size(0), m_dim], block_size=[1, B_M]):
         for tb in range(tile_b.begin, tile_b.end):
             m_i = hl.full([tile_m], float("-inf"), dtype=torch.float32)
@@ -177,7 +209,11 @@ def main() -> None:
     # [z, h, n_ctx, head_dim]
     # test(8, 16, 2048, 64, torch.float16)
     # test(32, 16, 512, 128, torch.float16)
-    test(2, 32, 1024, 64, torch.float16)
+    # test(2, 16, 512, 64, torch.float16)
+    # test(4, 16, 4096, 128, torch.float16)
+    # test(16, 32, 1024, 64, torch.float16)
+    # test(8, 16, 2048, 128, torch.float16)
+    test(4, 32, 256, 128, torch.float16)
 
 
 if __name__ == "__main__":

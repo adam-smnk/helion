@@ -46,9 +46,27 @@ faulthandler.enable()
 # @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 256, 16], indexing='tensor_descriptor', l2_groupings=[2], loop_orders=[[1, 0]], num_stages=4, num_warps=32, pid_type='flat', range_flattens=[None, None], range_multi_buffers=[None, None], range_num_stages=[0, 0], range_unroll_factors=[0, 0], range_warp_specializes=[]))
 # @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[128, 256, 16], indexing='tensor_descriptor', l2_groupings=[64], loop_orders=[[0, 1]], num_stages=5, num_warps=32, pid_type='persistent_interleaved', range_flattens=[None, False], range_multi_buffers=[None, True], range_num_stages=[0, 1], range_unroll_factors=[0, 0]))
 # Best so far
-@helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 128, 32], indexing='tensor_descriptor', l2_groupings=[32], loop_orders=[[0, 1]], num_stages=4, num_warps=32, pid_type='persistent_interleaved', range_flattens=[None, False], range_multi_buffers=[True, False], range_num_stages=[1, 4], range_unroll_factors=[4, 1]))
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 128, 32], indexing='tensor_descriptor', l2_groupings=[32], loop_orders=[[0, 1]], num_stages=4, num_warps=32, pid_type='persistent_interleaved', range_flattens=[None, False], range_multi_buffers=[True, False], range_num_stages=[1, 4], range_unroll_factors=[4, 1]))
 # Invalid numerical results
 # @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 32, 32], indexing='tensor_descriptor', l2_groupings=[2], loop_orders=[[0, 1]], num_stages=3, num_warps=32, pid_type='persistent_interleaved', range_flattens=[True, None], range_multi_buffers=[True, None], range_num_stages=[4, 3], range_unroll_factors=[2, 3]))
+# Bench 4K
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[128, 256, 16], indexing='tensor_descriptor', l2_groupings=[4], loop_orders=[[0, 1]], num_stages=3, num_warps=16, pid_type='flat', range_flattens=[None, None], range_multi_buffers=[None, False], range_num_stages=[0, 4], range_unroll_factors=[0, 0], range_warp_specializes=[]))
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[128, 256, 32], indexing='tensor_descriptor', l2_groupings=[8], loop_orders=[[1, 0]], num_stages=3, num_warps=16, pid_type='flat', range_flattens=[None, True], range_multi_buffers=[None, None], range_num_stages=[0, 3], range_unroll_factors=[0, 0], range_warp_specializes=[]))
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[128, 256, 32], indexing='tensor_descriptor', l2_groupings=[4], loop_orders=[[1, 0]], num_stages=3, num_warps=16, pid_type='flat', range_flattens=[None, None], range_multi_buffers=[None, True], range_num_stages=[0, 3], range_unroll_factors=[0, 0], range_warp_specializes=[]))
+# Best so far
+@helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 256, 32], indexing='tensor_descriptor', l2_groupings=[4], loop_orders=[[0, 1]], num_stages=2, num_warps=32, pid_type='flat', range_flattens=[None, False], range_multi_buffers=[None, False], range_num_stages=[0, 2], range_unroll_factors=[0, 1], range_warp_specializes=[]))
+# Bench 16K
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[128, 256, 16], indexing='tensor_descriptor', l2_groupings=[32], loop_orders=[[0, 1]], num_stages=6, num_warps=32, pid_type='flat', range_flattens=[None, True], range_multi_buffers=[None, True], range_num_stages=[0, 3], range_unroll_factors=[0, 1], range_warp_specializes=[]))
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[128, 256, 16], indexing='tensor_descriptor', l2_groupings=[4], loop_orders=[[0, 1]], num_stages=6, num_warps=32, pid_type='persistent_interleaved', range_flattens=[None, False], range_multi_buffers=[None, False], range_num_stages=[3, 0], range_unroll_factors=[3, 1]))
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[128, 256, 16], indexing='tensor_descriptor', l2_groupings=[16], loop_orders=[[0, 1]], num_stages=3, num_warps=16, pid_type='flat', range_flattens=[None, False], range_multi_buffers=[None, None], range_num_stages=[0, 4], range_unroll_factors=[0, 0], range_warp_specializes=[]))
+# Best so far
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[128, 256, 16], indexing='tensor_descriptor', l2_groupings=[4], loop_orders=[[0, 1]], num_stages=5, num_warps=32, pid_type='persistent_interleaved', range_flattens=[None, True], range_multi_buffers=[False, False], range_num_stages=[1, 4], range_unroll_factors=[2, 0]))
+# Bench M16K
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[128, 256, 32], indexing='tensor_descriptor', l2_groupings=[4], loop_orders=[[0, 1]], num_stages=3, num_warps=16, pid_type='flat', range_flattens=[None, True], range_multi_buffers=[None, True], range_num_stages=[0, 1], range_unroll_factors=[0, 1], range_warp_specializes=[]))
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[128, 256, 32], indexing='tensor_descriptor', l2_groupings=[2], loop_orders=[[0, 1]], num_stages=3, num_warps=16, pid_type='flat', range_flattens=[None, None], range_multi_buffers=[None, True], range_num_stages=[0, 3], range_unroll_factors=[0, 0], range_warp_specializes=[]))
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 256, 32], indexing='tensor_descriptor', l2_groupings=[4], loop_orders=[[0, 1]], num_stages=2, num_warps=32, pid_type='persistent_interleaved', range_flattens=[None, True], range_multi_buffers=[False, False], range_num_stages=[0, 2], range_unroll_factors=[0, 1]))
+# Best so far
+# @helion.kernel(static_shapes=True, config=helion.Config(block_sizes=[256, 256, 32], indexing='tensor_descriptor', l2_groupings=[4], loop_orders=[[0, 1]], num_stages=2, num_warps=32, pid_type='flat', range_flattens=[None, False], range_multi_buffers=[None, False], range_num_stages=[0, 2], range_unroll_factors=[0, 1], range_warp_specializes=[]))
 # Manual autotune - based on XPU's 'get_matmul_batched_autotune_configs'
 # @helion.kernel(static_shapes=True, configs=[
 #     helion.Config(block_sizes=[256, 256, 32], indexing='tensor_descriptor', l2_groupings=[4],
@@ -492,7 +510,11 @@ def main() -> None:
     # autotune(1024, 1024, 1024)
     # check(1024, 1024, 1024)
     # check(4096, 4096, 4096)
-    check(512, 8192, 8192)
+    # bench configs
+    # check(512, 8192, 8192)
+    check(4096, 4096, 4096)
+    # check(1024, 16384, 8192)
+    # check(16384, 8192, 1024)
 
 
 # %%
