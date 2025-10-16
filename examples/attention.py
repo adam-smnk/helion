@@ -53,10 +53,11 @@ faulthandler.enable()
 # Autotuner - 4x32x256x128
 # @helion.kernel(config=helion.Config(B_M=128, B_N=32, block_sizes=[], indexing='block_ptr', l2_groupings=[8], loop_orders=[[0, 1]], num_stages=3, num_warps=16, pid_type='persistent_interleaved', range_flattens=[None, False, None], range_multi_buffers=[None, False, False], range_num_stages=[0, 0, 0], range_unroll_factors=[0, 0, 0], range_warp_specializes=[]), static_shapes=True)
 # @helion.kernel(config=helion.Config(B_M=128, B_N=32, block_sizes=[], indexing='block_ptr', l2_groupings=[1], loop_orders=[[1, 0]], num_stages=1, num_warps=16, pid_type='flat', range_flattens=[None, False, None], range_multi_buffers=[None, True, False], range_num_stages=[0, 2, 4], range_unroll_factors=[0, 1, 1], range_warp_specializes=[]), static_shapes=True)
-@helion.kernel(static_shapes=True, config=helion.Config(B_M=64, B_N=32, block_sizes=[], indexing='block_ptr', l2_groupings=[32], loop_orders=[[0, 1]], num_stages=1, num_warps=8, pid_type='flat', range_flattens=[None, False, False], range_multi_buffers=[None, None, True], range_num_stages=[0, 0, 0], range_unroll_factors=[0, 1, 0], range_warp_specializes=[]))
+# @helion.kernel(static_shapes=True, config=helion.Config(B_M=64, B_N=32, block_sizes=[], indexing='block_ptr', l2_groupings=[32], loop_orders=[[0, 1]], num_stages=1, num_warps=8, pid_type='flat', range_flattens=[None, False, False], range_multi_buffers=[None, None, True], range_num_stages=[0, 0, 0], range_unroll_factors=[0, 1, 0], range_warp_specializes=[]))
+@helion.kernel(config=helion.Config(B_M=128, B_N=64, block_sizes=[], indexing='tensor_descriptor', l2_groupings=[16], load_eviction_policies=['', '', ''], loop_orders=[[0, 1]], num_stages=4, num_warps=16, pid_type='flat', range_flattens=[None, False, None], range_multi_buffers=[None, False, False], range_num_stages=[0, 0, 0], range_unroll_factors=[0, 0, 0], range_warp_specializes=[]), static_shapes=True)
 # Manual autotune - based on XPU's 'flash_attention_benchmark.py' configs
 # @helion.kernel(static_shapes=True, configs=[
-#     helion.Config(B_M=BM, B_N=BN, indexing='block_ptr', l2_groupings=[l2],
+#     helion.Config(B_M=BM, B_N=BN, indexing='tensor_descriptor', l2_groupings=[l2],
 #                   loop_orders=[[0, 1]], num_stages=s, num_warps=w, pid_type='flat',
 #                   range_flattens=[None, False, None], range_multi_buffers=[None, False, False], range_num_stages=[0, 0, 0],
 #                   range_unroll_factors=[0, 0, 0], range_warp_specializes=[])
@@ -67,6 +68,7 @@ faulthandler.enable()
 #                   for l2 in [8, 16] \
 #     ]
 # )
+# @helion.kernel(config=helion.Config(B_M=128, B_N=64, block_sizes=[], indexing='tensor_descriptor', l2_groupings=[16], load_eviction_policies=['', '', ''], loop_orders=[[0, 1]], num_stages=4, num_warps=16, pid_type='flat', range_flattens=[None, False, None], range_multi_buffers=[None, False, False], range_num_stages=[0, 0, 0], range_unroll_factors=[0, 0, 0], range_warp_specializes=[]), static_shapes=True)
 # @helion.kernel(config=helion.Config(B_M=128, B_N=32, block_sizes=[], indexing='block_ptr', l2_groupings=[8], loop_orders=[[0, 1]], num_stages=3, num_warps=16, pid_type='persistent_interleaved', range_flattens=[None, False, None], range_multi_buffers=[None, False, False], range_num_stages=[0, 0, 0], range_unroll_factors=[0, 0, 0], range_warp_specializes=[]), static_shapes=True)
 def attention(
     q_in: torch.Tensor,
