@@ -32,8 +32,8 @@ PATTERN_SEARCH_DEFAULTS = PatternSearchConfig(
 )
 
 DIFFERENTIAL_EVOLUTION_DEFAULTS = DifferentialEvolutionConfig(
-    population_size=40,
-    max_generations=40,
+    population_size=1,
+    max_generations=1,
 )
 
 RANDOM_SEARCH_DEFAULTS = RandomSearchConfig(
